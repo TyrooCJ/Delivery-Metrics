@@ -320,8 +320,17 @@ el('previewBtn').addEventListener('click', async () => {
     }
     log(`✓ Coverage: ${Object.entries(coverage).map(([m,d])=>`${m}:${d}`).join(', ')}`);
 
-    // Check new advertisers
-    const knownCIDs = new Set((await DB.getAdvertisers()).map(a => normalizeCID(String(a.cid))));
+    // Check new advertisers — fallback to local JSON if Sheet is empty
+    let knownAdvs = await DB.getAdvertisers();
+    if (!knownAdvs || knownAdvs.length === 0) {
+      log('⚠ Sheet has no advertisers — loading from local JSON…', 'warn');
+      const res = await fetch('../data/advertisers.json?t=' + Date.now());
+      knownAdvs = await res.json();
+      // Seed the Sheet so future uploads work correctly
+      await DB.saveAdvertisers(knownAdvs);
+      log(`✓ Seeded ${knownAdvs.length} advertisers into Google Sheet`, 'success');
+    }
+    const knownCIDs = new Set(knownAdvs.map(a => normalizeCID(String(a.cid))));
     newAdvCIDs = [];
     for (const [advCid, pubs] of Object.entries(combined)) {
       if (!knownCIDs.has(advCid)) {
@@ -452,7 +461,11 @@ el('saveNewAdvBtn').addEventListener('click', async () => {
   }
   try {
     el('saveNewAdvBtn').textContent='Saving…';
-    const existing = await DB.getAdvertisers();
+    let existing = await DB.getAdvertisers();
+    if (!existing || existing.length === 0) {
+      const res = await fetch('../data/advertisers.json?t=' + Date.now());
+      existing = await res.json();
+    }
     await DB.saveAdvertisers([...existing, ...newRecs]);
     showToast(`✓ ${newRecs.length} new advertiser(s) saved`);
     el('newAdvModal').style.display='none';
