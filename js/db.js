@@ -1,35 +1,28 @@
 /**
  * db.js — Data layer for CJ CPS Dashboard
  *
- * READS:  Direct fetch from published Google Sheet CSV — no auth, no API key
- * WRITES: POST to Google Apps Script web app — no auth, no API key
+ * READS:  Apps Script GET — no auth, no API key
+ * WRITES: Apps Script POST — no auth, no API key
  *
  * After deploying the Apps Script, paste the web app URL below.
  */
 
 const DB = (() => {
-  const SHEET_ID        = '1kfTJd5Kj6FkRdOzYD3RR8Z8VteiJ9kypiPgIw3I2ifE';
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlKrLQlsoof12egwgDB5xyNx4hmbnjbqqIZPjtUiAarcrsgc6Doa2gvY1O3SEtXmmd/exec';
 
-  // ── READ via Apps Script GET ─────────────────────────────────────────
-  async function getActuals() {
-    const url = `${APPS_SCRIPT_URL}?action=getActuals&t=${Date.now()}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to load actuals');
+  // ── GET helper — redirect:follow required for Apps Script CORS ───────
+  async function get(action) {
+    const url = `${APPS_SCRIPT_URL}?action=${action}&t=${Date.now()}`;
+    const res = await fetch(url, { redirect: 'follow' });
+    if (!res.ok) throw new Error(`Failed to load ${action} (${res.status})`);
     return res.json();
   }
 
-  async function getAdvertisers() {
-    const url = `${APPS_SCRIPT_URL}?action=getAdvertisers&t=${Date.now()}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to load advertisers');
-    return res.json();
-  }
-
-  // ── WRITE via Apps Script POST ───────────────────────────────────────
+  // ── POST helper ───────────────────────────────────────────────────────
   async function post(payload) {
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
+      redirect: 'follow',
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Apps Script write failed: ' + res.status);
@@ -38,29 +31,14 @@ const DB = (() => {
     return data;
   }
 
-  async function getBlockedCIDs() {
-    const url = `${APPS_SCRIPT_URL}?action=getBlockedCIDs&t=${Date.now()}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to load blocked CIDs');
-    const data = await res.json();
-    return data.cids || [];
-  }
-
-  async function addBlockedCIDs(entries) {
-    return post({ action: 'addBlockedCIDs', entries });
-  }
-
-  async function saveActuals(data) {
-    return post({ action: 'writeActuals', ...data });
-  }
-
-  async function saveAdvertisers(advertisers) {
-    return post({ action: 'writeAdvertisers', advertisers });
-  }
-
-  async function clearActuals() {
-    return post({ action: 'clearActuals' });
-  }
+  // ── PUBLIC ────────────────────────────────────────────────────────────
+  const getActuals      = ()      => get('getActuals');
+  const getAdvertisers  = ()      => get('getAdvertisers');
+  const getBlockedCIDs  = ()      => get('getBlockedCIDs').then(d => d.cids || []);
+  const addBlockedCIDs  = entries => post({ action: 'addBlockedCIDs', entries });
+  const saveActuals     = data    => post({ action: 'writeActuals', ...data });
+  const saveAdvertisers = advs    => post({ action: 'writeAdvertisers', advertisers: advs });
+  const clearActuals    = ()      => post({ action: 'clearActuals' });
 
   return { getActuals, getAdvertisers, getBlockedCIDs, addBlockedCIDs, saveActuals, saveAdvertisers, clearActuals };
 })();
