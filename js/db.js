@@ -9,7 +9,7 @@
 
 const DB = (() => {
   const SHEET_ID        = '1kfTJd5Kj6FkRdOzYD3RR8Z8VteiJ9kypiPgIw3I2ifE';
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlKrLQlsoof12egwgDB5xyNx4hmbnjbqqIZPjtUiAarcrsgc6Doa2gvY1O3SEtXmmd/exec';
+  const APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_URL_HERE';
 
   // ── READ via Apps Script GET ─────────────────────────────────────────
   async function getActuals() {
@@ -38,6 +38,18 @@ const DB = (() => {
     return data;
   }
 
+  async function getBlockedCIDs() {
+    const url = `${APPS_SCRIPT_URL}?action=getBlockedCIDs&t=${Date.now()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to load blocked CIDs');
+    const data = await res.json();
+    return data.cids || [];
+  }
+
+  async function addBlockedCIDs(entries) {
+    return post({ action: 'addBlockedCIDs', entries });
+  }
+
   async function saveActuals(data) {
     return post({ action: 'writeActuals', ...data });
   }
@@ -50,5 +62,5 @@ const DB = (() => {
     return post({ action: 'clearActuals' });
   }
 
-  return { getActuals, getAdvertisers, saveActuals, saveAdvertisers, clearActuals };
+  return { getActuals, getAdvertisers, getBlockedCIDs, addBlockedCIDs, saveActuals, saveAdvertisers, clearActuals };
 })();
