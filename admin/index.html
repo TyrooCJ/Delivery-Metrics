@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CJ CPS — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0e0f14;
+      --surface:  #151720;
+      --border:   #252836;
+      --accent:   #00e5b4;
+      --accent2:  #4f7cff;
+      --red:      #ff4f6e;
+      --yellow:   #f5c842;
+      --text:     #e8eaf2;
+      --muted:    #6b7280;
+      --font:     'DM Sans', sans-serif;
+      --mono:     'DM Mono', monospace;
+      --display:  'Syne', sans-serif;
+    }
+
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── LOGIN ── */
+    #loginSection {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 48px; width: 400px;
+    }
+    .login-card h1 { font-family: var(--display); font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+    .login-card p  { color: var(--muted); font-size: 0.85rem; margin-bottom: 32px; }
+    .login-card input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 14px; font-family: var(--font);
+      font-size: 0.9rem; outline: none; margin-bottom: 12px;
+      transition: border-color .15s;
+    }
+    .login-card input:focus { border-color: var(--accent); }
+    #loginError { color: var(--red); font-size: 0.8rem; margin-top: 8px; min-height: 18px; }
+
+    /* ── MAIN ── */
+    #mainSection { display: none; }
+    .admin-header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 32px; display: flex; align-items: center; gap: 24px; height: 56px;
+    }
+    .admin-header .logo { font-family: var(--display); font-size: 1rem; font-weight: 700; color: var(--accent); }
+    .admin-header .logo span { color: var(--muted); font-weight: 400; font-size: 0.8rem; margin-left: 8px; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 2px; margin-left: auto; }
+    .tab-btn {
+      background: none; border: none; color: var(--muted); font-family: var(--font);
+      font-size: 0.82rem; font-weight: 600; padding: 6px 16px; cursor: pointer;
+      text-transform: uppercase; letter-spacing: .08em; border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn:hover  { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .admin-body { max-width: 1400px; margin: 0 auto; padding: 32px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── UPLOAD TAB ── */
+    .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .drop-zone {
+      background: var(--surface); border: 2px dashed var(--border);
+      padding: 32px 24px; text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(0,229,180,.04); }
+    .drop-zone.has-file { border-style: solid; border-color: var(--accent); }
+    .zone-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+    .zone-name  { font-size: 0.88rem; color: var(--text); font-family: var(--mono); }
+    .zone-hint  { font-size: 0.75rem; color: var(--muted); margin-top: 6px; }
+
+    .action-row { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; }
+
+    /* ── LOG ── */
+    .log-panel { background: var(--surface); border: 1px solid var(--border); padding: 16px; margin-bottom: 24px; max-height: 200px; overflow-y: auto; font-family: var(--mono); font-size: 0.78rem; }
+    .log-line { padding: 2px 0; }
+    .log-line.success { color: var(--accent); }
+    .log-line.error   { color: var(--red); }
+    .log-line.warn    { color: var(--yellow); }
+
+    /* ── PREVIEW ── */
+    #previewSection { display: none; }
+    .preview-stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .preview-stat { background: var(--surface); border: 1px solid var(--border); padding: 12px 20px; }
+    .ps-val   { display: block; font-family: var(--mono); font-size: 1.1rem; color: var(--accent); }
+    .ps-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+
+    /* ── DB STATUS ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .stat-box  { background: var(--surface); border: 1px solid var(--border); padding: 14px 16px; }
+    .stat-box .sv { font-family: var(--mono); font-size: 1rem; color: var(--text); }
+    .stat-box .sl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 4px; }
+    .cov-line { font-size: 0.75rem; font-family: var(--mono); color: var(--accent2); margin-top: 12px; }
+
+    /* ── NEW ADV MODAL ── */
+    #newAdvModal {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-card {
+      background: var(--surface); border: 1px solid var(--border);
+      width: 860px; max-width: 95vw; max-height: 85vh; overflow-y: auto; padding: 32px;
+    }
+    .modal-card h2 { font-family: var(--display); font-size: 1.2rem; margin-bottom: 6px; }
+    .modal-card p  { color: var(--muted); font-size: 0.82rem; margin-bottom: 24px; }
+    .new-adv-row { border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
+    .new-adv-name { font-weight: 600; margin-bottom: 12px; }
+    .new-adv-cid  { font-family: var(--mono); font-size: 0.75rem; color: var(--accent2); margin-left: 8px; }
+    .new-adv-fields { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .field-group label { display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 6px; font-weight: 700; }
+    .field-group select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 10px; font-family: var(--font); font-size: 0.85rem;
+    }
+
+    /* ── TARGETS TAB ── */
+    .targets-toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+    .targets-toolbar input {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      padding: 8px 14px; font-family: var(--font); font-size: 0.85rem; outline: none; width: 280px;
+    }
+    .targets-table-wrap { overflow-x: auto; max-height: calc(100vh - 260px); border: 1px solid var(--border); }
+    table { border-collapse: collapse; width: 100%; }
+    thead th {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 8px 6px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--muted); white-space: nowrap; font-weight: 700; position: sticky; top: 0; z-index: 2;
+    }
+    thead th.sticky-col { left: 0; z-index: 3; }
+    tbody td { border-bottom: 1px solid rgba(37,40,54,.7); padding: 6px; vertical-align: middle; }
+    tbody tr:hover td { background: rgba(255,255,255,.02); }
+    .sticky-col { position: sticky; left: 0; background: var(--bg); z-index: 1; min-width: 180px; padding: 8px 12px; }
+    .adv-name { font-size: 0.82rem; font-weight: 600; }
+    .adv-cid  { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+    .pod-tag  { font-size: 0.72rem; color: var(--accent2); background: rgba(79,124,255,.1); padding: 2px 8px; white-space: nowrap; }
+    .tgt-input {
+      width: 72px; background: var(--bg); border: 1px solid transparent; color: var(--text);
+      padding: 4px 6px; font-family: var(--mono); font-size: 0.75rem; text-align: right;
+      transition: border-color .15s; border-radius: 2px;
+    }
+    .tgt-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+    .click-tgt:focus { border-color: var(--accent2); }
+    .fee-tgt:focus   { border-color: var(--accent); }
+    .month-header { text-align: center; }
+    .month-header small { display: block; font-size: 0.6rem; color: var(--muted); font-weight: 400; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      background: var(--accent); color: #000; border: none; padding: 10px 22px;
+      font-family: var(--font); font-size: 0.85rem; font-weight: 700; cursor: pointer;
+      transition: opacity .15s; display: inline-flex; align-items: center; gap: 8px;
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .btn:hover    { opacity: .85; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-ghost {
+      background: none; border: 1px solid var(--border); color: var(--text);
+      padding: 10px 18px; font-family: var(--font); font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: border-color .15s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: rgba(255,79,110,.1); border: 1px solid rgba(255,79,110,.3); color: var(--red); padding: 10px 18px; font-family: var(--font); font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+    .btn-danger:hover { background: rgba(255,79,110,.2); }
+
+    /* ── SECTION HEADER ── */
+    .section-hd { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .section-hd h2 { font-family: var(--display); font-size: 1rem; font-weight: 700; }
+    .section-hd p  { font-size: 0.8rem; color: var(--muted); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: var(--surface);
+      border: 1px solid var(--accent); color: var(--accent); padding: 12px 20px;
+      font-size: 0.85rem; font-family: var(--mono); opacity: 0; transform: translateY(8px);
+      transition: opacity .2s, transform .2s; pointer-events: none; z-index: 9999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.err  { border-color: var(--red); color: var(--red); }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginSection">
+  <div class="login-card">
+    <h1>CJ CPS Admin</h1>
+    <p>Secure upload console — internal use only</p>
+    <input type="password" id="passwordInput" placeholder="Password" autocomplete="off">
+    
+    <button class="btn" onclick="handleLogin()" style="width:100%;margin-top:12px">Unlock</button>
+    <div id="loginError"></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="mainSection">
+  <div class="admin-header">
+    <div class="logo">CJ CPS <span>Admin</span></div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="uploadTab">Upload Data</button>
+      <button class="tab-btn" data-tab="targetsTab">Manage Targets</button>
+      <button class="tab-btn" data-tab="statusTab">DB Status</button>
+    </div>
+  </div>
+
+  <div class="admin-body">
+
+    <!-- ── UPLOAD TAB ── -->
+    <div class="tab-pane active" id="uploadTab">
+      <div class="section-hd">
+        <div>
+          <h2>Upload Actuals</h2>
+          <p>Drop CJ crosstab exports (UTF-16, tab-separated). Net file required; Gross optional (enables reversals).</p>
+        </div>
+      </div>
+
+      <div class="upload-grid">
+        <div class="drop-zone" id="netZone">
+          <div class="zone-label">Net Fee File (required)</div>
+          <div class="zone-name">Drop Net Fee file here</div>
+          <div class="zone-hint">Clicks + CJ Fee USD · UTF-16 TSV</div>
+        </div>
+        <div class="drop-zone" id="grossZone">
+          <div class="zone-label">Gross Fee File (optional)</div>
+          <div class="zone-name">Drop Gross Fee file here</div>
+          <div class="zone-hint">Gross fee only · enables reversals</div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn" id="previewBtn" disabled>Preview & Commit</button>
+      </div>
+
+      <div class="log-panel" id="uploadLog"></div>
+
+      <!-- Preview summary -->
+      <div id="previewSection">
+        <div class="section-hd"><h2>Ready to Commit</h2></div>
+        <div class="preview-stats" id="previewSummary"></div>
+        <div class="action-row">
+          <button class="btn" id="commitBtn" style="display:none">✓ Commit to GitHub</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TARGETS TAB ── -->
+    <div class="tab-pane" id="targetsTab">
+      <div class="section-hd">
+        <div>
+          <h2>Manage Targets</h2>
+          <p>Edit click and fee targets per account per month. Changes save directly to GitHub.</p>
+        </div>
+      </div>
+      <div class="targets-toolbar">
+        <input type="text" id="targetsSearch" placeholder="Search advertiser…">
+        <button class="btn" id="saveTargetsBtn">💾 Save Targets</button>
+      </div>
+      <div class="targets-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sticky-col">Advertiser</th>
+              <th>PoD</th>
+              <th class="month-header" colspan="2">Jan<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Feb<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Mar<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Apr<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">May<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Jun<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Jul<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Aug<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Sep<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Oct<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Nov<small>Clicks / Fee</small></th>
+              <th class="month-header" colspan="2">Dec<small>Clicks / Fee</small></th>
+            </tr>
+          </thead>
+          <tbody id="targetsBody">
+            <tr><td colspan="26" style="text-align:center;padding:32px;color:var(--muted)">Click "Manage Targets" tab to load</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── STATUS TAB ── -->
+    <div class="tab-pane" id="statusTab">
+      <div class="section-hd"><h2>Database Status</h2></div>
+      <div id="dbStatus" style="color:var(--muted);font-size:0.85rem">Loading…</div>
+      <hr class="divider">
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn-ghost" id="refreshStatusBtn">↺ Refresh</button>
+        <button class="btn-danger" id="clearActualsBtn">🗑 Clear All Actuals</button>
+      </div>
+      <p style="font-size:0.75rem;color:var(--muted);margin-top:16px">Clearing actuals removes all uploaded performance data. Advertiser metadata and targets are preserved.</p>
+    </div>
+
+  </div><!-- admin-body -->
+</div><!-- mainSection -->
+
+<!-- NEW ADVERTISER MODAL -->
+<div id="newAdvModal">
+  <div class="modal-card">
+    <h2>⚠ New Advertisers Detected</h2>
+    <p>These CIDs are not in the database. Fill their details before committing actuals. Book = New Book, Status = New-NAL automatically.</p>
+    <div id="newAdvList"></div>
+    <div style="display:flex;gap:12px;margin-top:20px">
+      <button class="btn" id="saveNewAdvBtn">Save & Continue</button>
+      <button class="btn-ghost" onclick="el('newAdvModal').style.display='none'">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../js/db.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

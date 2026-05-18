@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CJ CPS Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div id="loadingBar"></div>
+<div id="loadError"></div>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div class="logo">CJ CPS <span>APAC</span></div>
+
+  <div class="filters">
+    <!-- BoB toggle -->
+    <div class="bob-group">
+      <button class="bob-btn active" id="bobAll"      data-val="all">All</button>
+      <button class="bob-btn"        id="bobExisting" data-val="existing">Existing</button>
+      <button class="bob-btn"        id="bobNew"      data-val="new">New</button>
+    </div>
+
+    <select id="monthFilter">
+      <option value="all">All Months</option>
+    </select>
+
+    <select id="programFilter">
+      <option value="all">All Programs</option>
+    </select>
+
+    <select id="geoFilter">
+      <option value="all">All Geos</option>
+    </select>
+
+    <select id="statusFilter">
+      <option value="all">All Status</option>
+      <option value="Existing">Live</option>
+      <option value="Churn">Churn</option>
+      <option value="New - NAL">New NAL</option>
+    </select>
+
+    <select id="servicedFilter">
+      <option value="all">Serviced: All</option>
+      <option value="Yes">Serviced</option>
+      <option value="No">Unserviced</option>
+    </select>
+
+    <select id="podFilter">
+      <option value="all">All PoD</option>
+    </select>
+
+    <button class="btn-sm" id="resetFilters">↺ Reset</button>
+  </div>
+</div>
+
+<!-- ── BODY ── -->
+<div class="body">
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <!-- Fee -->
+    <div class="kpi-card">
+      <div class="kpi-label">Net Fee</div>
+      <div class="kpi-val" id="kpiFeeVal">—</div>
+      <div class="kpi-sub" id="kpiFeeSub">Loading…</div>
+      <div class="kpi-bar-track"><div class="kpi-bar" id="kpiFeeBar"></div></div>
+    </div>
+
+    <!-- Clicks -->
+    <div class="kpi-card">
+      <div class="kpi-label">Clicks</div>
+      <div class="kpi-val" id="kpiClickVal">—</div>
+      <div class="kpi-sub" id="kpiClickSub">Loading…</div>
+      <div class="kpi-bar-track"><div class="kpi-bar" id="kpiClickBar"></div></div>
+    </div>
+
+    <!-- Reversals -->
+    <div class="kpi-card">
+      <div class="kpi-label">Reversals</div>
+      <div class="kpi-val" id="kpiRevVal">—</div>
+      <div class="kpi-sub" id="kpiRevSub">Upload gross file</div>
+    </div>
+
+    <!-- Accounts -->
+    <div class="kpi-card" style="grid-column: span 2">
+      <div class="kpi-label">Accounts</div>
+      <div class="kpi-accounts">
+        <div class="kpi-acc-item">
+          <div class="kpi-acc-n acc-live" id="kpiLiveVal">—</div>
+          <div class="kpi-acc-l">Live</div>
+        </div>
+        <div class="kpi-acc-item">
+          <div class="kpi-acc-n acc-churn" id="kpiChurnVal">—</div>
+          <div class="kpi-acc-l">Churn</div>
+        </div>
+        <div class="kpi-acc-item">
+          <div class="kpi-acc-n acc-nal" id="kpiNalVal">—</div>
+          <div class="kpi-acc-l">NAL</div>
+        </div>
+      </div>
+      <div class="kpi-sub" id="kpiAccSub" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1: Fee trend + Click trend -->
+  <div class="charts-row charts-row-2" style="margin-bottom:12px">
+    <div class="chart-card">
+      <div class="chart-title">Net Fee — Monthly Trend</div>
+      <div class="chart-inner"><canvas id="feeChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Clicks — Monthly Trend</div>
+      <div class="chart-inner"><canvas id="clickChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2: Reversals + Top Adv + Top Pub -->
+  <div class="charts-row charts-row-3" style="margin-bottom:12px">
+    <div class="chart-card">
+      <div class="chart-title">Reversals by Month</div>
+      <div class="chart-inner-sm"><canvas id="revChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Top 10 Advertisers — Net Fee</div>
+      <div class="chart-inner-sm"><canvas id="topAdvChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Top 10 Publishers — Net Fee</div>
+      <div class="chart-inner-sm"><canvas id="topPubChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Charts Row 3: Program + Geo + PoD achievement -->
+  <div class="charts-row charts-row-3" style="margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">Net Fee by Program</div>
+      <div class="chart-inner-sm"><canvas id="progChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Net Fee by Geo</div>
+      <div class="chart-inner-sm"><canvas id="geoChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Fee Achievement by PoD</div>
+      <div class="chart-inner-sm"><canvas id="podChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Tables -->
+  <div class="tables-section">
+    <div class="table-header">
+      <button class="tbl-tab active" data-pane="advPane">Advertisers</button>
+      <button class="tbl-tab"        data-pane="pubPane">Publishers</button>
+      <span class="tbl-count" id="advCount"></span>
+      <span class="tbl-count" id="pubCount" style="display:none"></span>
+      <input type="text" class="tbl-search" id="advSearch" placeholder="🔍 Search advertiser…">
+      <input type="text" class="tbl-search" id="pubSearch" placeholder="🔍 Search publisher…" style="display:none">
+      <button class="btn-export" id="exportAdvBtn">↓ CSV</button>
+    </div>
+
+    <!-- Advertiser table -->
+    <div class="tbl-pane active" id="advPane">
+      <div class="tbl-wrap">
+        <table id="advTable">
+          <thead><tr>
+            <th data-sort="advertiserName">Advertiser ↕</th>
+            <th data-sort="cid">CID</th>
+            <th data-sort="bookOfBusiness">Book</th>
+            <th data-sort="program">Program</th>
+            <th data-sort="geo">Geo</th>
+            <th data-sort="accountStatus">Status</th>
+            <th data-sort="servicedAccount">Serviced</th>
+            <th data-sort="pod">PoD</th>
+            <th data-sort="fullClick">Click Target</th>
+            <th data-sort="prorClick">Prorated</th>
+            <th data-sort="clicks">Clicks Del.</th>
+            <th data-sort="clickAchv">Clicks %</th>
+            <th data-sort="fullFee">Fee Target</th>
+            <th data-sort="prorFee">Prorated</th>
+            <th data-sort="netFee">Fee Del.</th>
+            <th data-sort="feeAchv">Fee %</th>
+            <th data-sort="reversals">Reversals</th>
+          </tr></thead>
+          <tbody id="advBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Publisher table -->
+    <div class="tbl-pane" id="pubPane">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Publisher</th>
+            <th>Pub CID</th>
+            <th>Clicks</th>
+            <th>Net Fee ($)</th>
+            <th>Gross Fee ($)</th>
+            <th>Reversals ($)</th>
+            <th># Advertisers</th>
+          </tr></thead>
+          <tbody id="pubBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- body -->
+
+<script src="js/db.js"></script>
+<script src="js/dashboard.js"></script>
+
+<script>
+// Toggle search/count visibility on tab switch
+document.querySelectorAll('.tbl-tab').forEach(t => {
+  t.addEventListener('click', () => {
+    const isAdv = t.dataset.pane === 'advPane';
+    document.getElementById('advSearch').style.display  = isAdv ? '' : 'none';
+    document.getElementById('pubSearch').style.display  = isAdv ? 'none' : '';
+    document.getElementById('advCount').style.display   = isAdv ? '' : 'none';
+    document.getElementById('pubCount').style.display   = isAdv ? 'none' : '';
+  });
+});
+</script>
+</body>
+</html>
