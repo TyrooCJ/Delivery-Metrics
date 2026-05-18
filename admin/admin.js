@@ -304,8 +304,13 @@ el('previewBtn').addEventListener('click', async () => {
     currentActuals = await DB.getActuals();
     log(`✓ DB loaded — ${(currentActuals.dailyRecords||[]).length} daily + ${(currentActuals.monthlyRecords||[]).length} monthly records`);
 
-    // Merge net+gross
-    const combined = mergeParsed(netParsed, grossParsed);
+    // Load dynamic blocked CIDs from Sheet and merge with hardcoded list
+    let dynamicBlocked = [];
+    try { dynamicBlocked = await DB.getBlockedCIDs(); } catch(e) {}
+    const allBlocked = new Set([...BLOCKED_CIDS, ...dynamicBlocked]);
+
+    // Merge net+gross — filter blocked CIDs
+    const combined = mergeParsed(netParsed, grossParsed, allBlocked);
 
     // Detect coverage
     const coverage = {};
@@ -326,14 +331,13 @@ el('previewBtn').addEventListener('click', async () => {
       log('⚠ Sheet has no advertisers — loading from local JSON…', 'warn');
       const res = await fetch('../data/advertisers.json?t=' + Date.now());
       knownAdvs = await res.json();
-      // Seed the Sheet so future uploads work correctly
       await DB.saveAdvertisers(knownAdvs);
       log(`✓ Seeded ${knownAdvs.length} advertisers into Google Sheet`, 'success');
     }
     const knownCIDs = new Set(knownAdvs.map(a => normalizeCID(String(a.cid))));
     newAdvCIDs = [];
     for (const [advCid, pubs] of Object.entries(combined)) {
-      if (!knownCIDs.has(advCid)) {
+      if (!knownCIDs.has(advCid) && !allBlocked.has(advCid)) {
         newAdvCIDs.push({ cid: advCid, advertiserName: Object.values(pubs)[0]?.advName || `CID ${advCid}` });
       }
     }
@@ -357,12 +361,13 @@ el('previewBtn').addEventListener('click', async () => {
   }
 });
 
-function mergeParsed(net, gross) {
+function mergeParsed(net, gross, allBlocked) {
   const combined = {};
   const sources  = [{parsed:net,type:'net'},{parsed:gross,type:'gross'}];
   for (const {parsed, type} of sources) {
     if (!parsed) continue;
     for (const [advCid, pubs] of Object.entries(parsed)) {
+      if (allBlocked && allBlocked.has(advCid)) continue; // skip blocked
       if (!combined[advCid]) combined[advCid] = {};
       for (const [pubCid, pubData] of Object.entries(pubs)) {
         if (!combined[advCid][pubCid]) combined[advCid][pubCid] = {pubName:pubData.pubName, advName:pubData.advName, dates:{}};
@@ -436,38 +441,79 @@ function renderNewAdvModal(advs) {
     <div class="new-adv-row" data-cid="${adv.cid}">
       <div class="new-adv-name">${adv.advertiserName} <span class="new-adv-cid">${adv.cid}</span></div>
       <div class="new-adv-fields">
-        <div class="field-group"><label>Program *</label><select class="sel-program"><option value="">— Select —</option>${PROGRAM_OPTIONS.map(o=>`<option>${o}</option>`).join('')}</select></div>
-        <div class="field-group"><label>Geo *</label><select class="sel-geo"><option value="">— Select —</option>${GEO_OPTIONS.map(o=>`<option>${o}</option>`).join('')}</select></div>
-        <div class="field-group"><label>PoD *</label><select class="sel-pod"><option value="">— Select —</option>${POD_OPTIONS.map(o=>`<option>${o}</option>`).join('')}</select></div>
-        <div class="field-group"><label>Serviced</label><select class="sel-serviced"><option value="Yes">Yes</option><option value="No">No</option></select></div>
+        <div class="field-group" style="grid-column:span 4">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" class="chk-cn" style="width:16px;height:16px;accent-color:var(--red)">
+            <span style="color:var(--red);font-weight:700">China (CN) account — block permanently, do not store</span>
+          </label>
+        </div>
+        <div class="field-group non-cn-fields"><label>Program *</label><select class="sel-program"><option value="">— Select —</option>${PROGRAM_OPTIONS.map(o=>`<option>${o}</option>`).join('')}</select></div>
+        <div class="field-group non-cn-fields"><label>Geo *</label><select class="sel-geo"><option value="">— Select —</option>${GEO_OPTIONS.map(o=>`<option>${o}</option>`).join('')}</select></div>
+        <div class="field-group non-cn-fields"><label>PoD *</label><select class="sel-pod"><option value="">— Select —</option>${POD_OPTIONS.map(o=>`<option>${o}</option>`).join('')}</select></div>
+        <div class="field-group non-cn-fields"><label>Serviced</label><select class="sel-serviced"><option value="Yes">Yes</option><option value="No">No</option></select></div>
       </div>
     </div>`).join('');
+
+  // Toggle non-CN fields when checkbox changes
+  $$$('.chk-cn').forEach(chk => {
+    chk.addEventListener('change', () => {
+      const row = chk.closest('.new-adv-row');
+      row.querySelectorAll('.non-cn-fields').forEach(f => {
+        f.style.opacity  = chk.checked ? '0.3' : '1';
+        f.style.pointerEvents = chk.checked ? 'none' : '';
+      });
+    });
+  });
+
   el('newAdvModal').style.display='flex';
 }
 
 el('saveNewAdvBtn').addEventListener('click', async () => {
   const rows = $$$('.new-adv-row');
-  const newRecs = [];
+  const newRecs    = []; // non-CN accounts to add
+  const cnToBlock  = []; // CN accounts to permanently block
+
   for (const row of rows) {
-    const cid=row.dataset.cid, program=row.querySelector('.sel-program').value,
-          geo=row.querySelector('.sel-geo').value, pod=row.querySelector('.sel-pod').value,
-          serviced=row.querySelector('.sel-serviced').value;
-    if (!program||!geo||!pod) { showToast('Fill all required fields',true); return; }
-    const advName = newAdvCIDs.find(a=>a.cid===cid)?.advertiserName||`CID ${cid}`;
-    newRecs.push({ cid, advertiserName:advName, bookOfBusiness:'New Book', program, geo,
-      accountStatus:'New - NAL', servicedAccount:serviced, pod, tripComFeeShare:false,
-      clickTargets:Object.fromEntries(MONTH_ORDER.map(m=>[m,0])),
-      feeTargets:Object.fromEntries(MONTH_ORDER.map(m=>[m,0])) });
+    const cid     = row.dataset.cid;
+    const isCN    = row.querySelector('.chk-cn').checked;
+    const advName = newAdvCIDs.find(a=>a.cid===cid)?.advertiserName || `CID ${cid}`;
+
+    if (isCN) {
+      cnToBlock.push({ cid, name: advName, reason: 'CN' });
+    } else {
+      const program = row.querySelector('.sel-program').value;
+      const geo     = row.querySelector('.sel-geo').value;
+      const pod     = row.querySelector('.sel-pod').value;
+      const serviced= row.querySelector('.sel-serviced').value;
+      if (!program||!geo||!pod) { showToast('Fill all required fields for non-CN accounts',true); return; }
+      newRecs.push({ cid, advertiserName:advName, bookOfBusiness:'New Book', program, geo,
+        accountStatus:'New - NAL', servicedAccount:serviced, pod, tripComFeeShare:false,
+        clickTargets:Object.fromEntries(MONTH_ORDER.map(m=>[m,0])),
+        feeTargets:Object.fromEntries(MONTH_ORDER.map(m=>[m,0])) });
+    }
   }
+
   try {
     el('saveNewAdvBtn').textContent='Saving…';
-    let existing = await DB.getAdvertisers();
-    if (!existing || existing.length === 0) {
-      const res = await fetch('../data/advertisers.json?t=' + Date.now());
-      existing = await res.json();
+
+    // Save CN accounts to blocked list in Sheet
+    if (cnToBlock.length) {
+      await DB.addBlockedCIDs(cnToBlock);
+      log(`✓ ${cnToBlock.length} CN account(s) blocked permanently`, 'success');
     }
-    await DB.saveAdvertisers([...existing, ...newRecs]);
-    showToast(`✓ ${newRecs.length} new advertiser(s) saved`);
+
+    // Save non-CN new accounts to advertisers
+    if (newRecs.length) {
+      let existing = await DB.getAdvertisers();
+      if (!existing || existing.length === 0) {
+        const res = await fetch('../data/advertisers.json?t=' + Date.now());
+        existing = await res.json();
+      }
+      await DB.saveAdvertisers([...existing, ...newRecs]);
+      log(`✓ ${newRecs.length} new advertiser(s) added`, 'success');
+    }
+
+    showToast(`✓ Done — ${cnToBlock.length} blocked, ${newRecs.length} added`);
     el('newAdvModal').style.display='none';
     el('commitBtn').style.display='inline-flex';
     newAdvCIDs=[];
