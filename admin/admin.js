@@ -11,7 +11,95 @@ const PROGRAM_OPTIONS= ['FPM','SS','GC','NA','Agency'];
 const POD_OPTIONS    = ['Tanya Jain','Mukund Toshniwal','Praneeth Bajaj','Shreya Grover','Pooja Chouhan','Katie Vo','Null'];
 const TRIP_COM_CID   = '4368684';
 const TRIP_COM_SHARE = 0.165;
-const BLOCKED_CIDS   = new Set(['4386835','4390377']); // IHG Global + IHG Greater China
+const BLOCKED_CIDS = new Set([
+  // ── China (CN) accounts — ignored on every upload ──
+  '1097361', // CyberLink
+  '2683708', // LightInTheBox
+  '3194603', // Wondershare
+  '3387283', // GeekBuying
+  '3773223', // Shein AMF
+  '4295086', // PandaHall
+  '4498040', // Banggood CJ Affiliate Pro
+  '4699387', // Fairyseason
+  '4723933', // PatPat
+  '4777179', // Zaful
+  '4839834', // Modlily.com
+  '4854093', // Bellelily
+  '5149517', // Eufy
+  '5197358', // Tenorshare/PassFab
+  '5306197', // PureVPN
+  '5313197', // ITEAD
+  '5594555', // Modelones.com
+  '5599987', // Vivaia INT
+  '5683510', // VideoProc
+  '5815804', // EcoFlow
+  '5824323', // UNice
+  '5966681', // Vevor
+  '6005268', // Cupshe US
+  '6045815', // Hohem
+  '6050938', // Vevor FR
+  '6053590', // Nadula Hair
+  '6067712', // Beauty Forever
+  '6081048', // Glamermaid
+  '6100283', // Roborock
+  '6109855', // iWALK
+  '6116651', // Klaiyi Hair
+  '6123342', // EcoFlow EU
+  '6163733', // myChway Beauty Tools
+  '6164489', // EaseUS
+  '6175965', // EcoFlow CA
+  '6175973', // EcoFlow UK
+  '6191107', // Bluetti Global
+  '6216442', // Bluu
+  '6229571', // Julia Hair
+  '6242886', // VIVIDSTORM
+  '6305416', // Halara
+  '6316298', // Phrozen
+  '6325655', // Luvme Hair
+  '6326546', // Ulike
+  '6342639', // Vantrue
+  '6385512', // Fanka INT
+  '6387385', // BloomChic
+  '6404897', // Aiper
+  '6424481', // Lifesight
+  '6582116', // Funny Fuzzy
+  '6584182', // HONGKONG DYU TECHNOLOGY
+  '6685106', // Renogy
+  '7087880', // Temu APAC
+  '7182748', // Aiper AU
+  '7185601', // Sunber Hair
+  '7207881', // Urban Revivo
+  '7385563', // Popilush US
+  '7423961', // Fanttik
+  '7443634', // Jackery
+  '7461882', // Dreame US
+  '7493867', // Vevor AU/CA/UK/MX
+  '7504299', // Safeshell
+  '7529241', // Aomei
+  '7568188', // TCL homesecurity
+  '7582444', // Bc Babycare
+  '7603322', // Imobie
+  '7633156', // Meross
+  '7636568', // Coofandy
+  '7641760', // Baseus US Amazon
+  '7641772', // Baseus EU and UK Amazon
+  '7686542', // KSP Performance
+  '7696208', // Lexar
+  '7696308', // Panda Office Limited
+  '7696220', // Pexar - Amazon
+  '7711902', // AliExpress - Global
+  '7804601', // GearUP
+  '7824417', // Mowrator
+  '7839428', // Amotopart
+  '7845357', // LILYSILK
+  '7863754', // FITUEYES
+  '7883485', // Honey Play Box
+  '7892263', // kaerworld
+  '5610532', // ZeBrand
+  // ── IHG accounts ──
+  '4386835', // InterContinental Hotels Group
+  '4390377', // IHG Greater China
+]);
 
 let netParsed   = null;
 let grossParsed = null;
