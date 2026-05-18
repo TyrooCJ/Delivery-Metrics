@@ -9,7 +9,7 @@
 
 const DB = (() => {
   const SHEET_ID        = '1kfTJd5Kj6FkRdOzYD3RR8Z8VteiJ9kypiPgIw3I2ifE';
-  const APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_URL_HERE';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlKrLQlsoof12egwgDB5xyNx4hmbnjbqqIZPjtUiAarcrsgc6Doa2gvY1O3SEtXmmd/exec';
 
   // ── READ via Apps Script GET ─────────────────────────────────────────
   async function getActuals() {
